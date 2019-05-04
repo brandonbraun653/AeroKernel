@@ -1,0 +1,9 @@
+
+lib ParameterManager
+    :   AeroKernel/parameter.cpp
+    :   <include>$(AeroInclude)
+    ;
+
+explicit ParameterManager ;
+
+explicit_alias param : ParameterManager ;

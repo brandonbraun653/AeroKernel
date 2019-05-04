@@ -1,9 +1,89 @@
 
+# -----------------------------------------------
+# Parameter Manager 
+# -----------------------------------------------
+local param_src = AeroKernel/parameter.cpp ;
+
 lib ParameterManager
-    :   AeroKernel/parameter.cpp
-    :   <include>$(AeroInclude)
+    :   $(param_src)
+
+    :   <toolset>gcc_arm_none_eabi
+        <cxxflags>--std=gnu++17
+        <include>$(AeroInclude)
+    ;
+
+lib ParameterManager
+    :   $(param_src)
+    
+    :   <toolset>msvc
+        <cxxflags>"/std:c++17"
+        <include>$(AeroInclude)
+    ;
+
+lib ParameterManager
+    :   $(param_src)
+
+    :   <toolset>gcc
+        <cxxflags>--std=gnu++17
+        <include>$(AeroInclude)
     ;
 
 explicit ParameterManager ;
 
-explicit_alias param : ParameterManager ;
+
+# -----------------------------------------------
+# Event Manager 
+# -----------------------------------------------
+local event_src = AeroKernel/event.cpp ;
+
+lib EventManager
+    :   $(event_src)
+
+    :   <toolset>gcc_arm_none_eabi
+        <include>$(AeroInclude)
+    ;
+
+lib EventManager
+    :   $(event_src)
+    
+    :   <toolset>msvc
+        <include>$(AeroInclude)
+    ;
+
+lib EventManager
+    :   $(event_src)
+
+    :   <toolset>gcc
+        <include>$(AeroInclude)
+    ;
+
+explicit EventManager ;
+
+
+# -----------------------------------------------
+# Log Manager 
+# -----------------------------------------------
+local log_src = AeroKernel/log.cpp ;
+
+lib LogManager
+    :   $(log_src)
+
+    :   <toolset>gcc_arm_none_eabi
+        <include>$(AeroInclude)
+    ;
+
+lib LogManager
+    :   $(log_src)
+    
+    :   <toolset>msvc
+        <include>$(AeroInclude)
+    ;
+
+lib LogManager
+    :   $(log_src)
+
+    :   <toolset>gcc
+        <include>$(AeroInclude)
+    ;
+
+explicit LogManager ;

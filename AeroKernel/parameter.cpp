@@ -12,14 +12,14 @@
 
 #include <iostream>
 
-namespace AeroKernel
+namespace AeroKernel::Parameter
 {
-  ParameterManager::ParameterManager()
+  Manager::Manager()
   {
 
   }
 
-  ParameterManager::~ParameterManager()
+  Manager::~Manager()
   {
 
   }

@@ -3,7 +3,7 @@
  *    parameter.cpp
  *
  *  Description:
- *
+ *    Implements the Aero Kernel Parameter Manager.
  *
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
@@ -14,8 +14,15 @@
 
 namespace AeroKernel
 {
-  void helloWorld()
+  ParameterManager::ParameterManager()
   {
-    std::cout << "Hello World!\n";
+
   }
+
+  ParameterManager::~ParameterManager()
+  {
+
+  }
+
+
 }  // namespace AeroKernel

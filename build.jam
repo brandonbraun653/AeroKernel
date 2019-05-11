@@ -9,6 +9,9 @@ lib ParameterManager
 
     :   <toolset>gcc_arm_none_eabi
         <include>$(AeroInclude)
+
+        <use>/SPARSEPP//PUB
+        <use>/CHIMERA//PUB
     ;
 
 lib ParameterManager
@@ -16,6 +19,9 @@ lib ParameterManager
     
     :   <toolset>msvc
         <include>$(AeroInclude)
+
+        <use>/SPARSEPP//PUB
+        <use>/CHIMERA//PUB
     ;
 
 lib ParameterManager
@@ -23,6 +29,9 @@ lib ParameterManager
 
     :   <toolset>gcc
         <include>$(AeroInclude)
+
+        <use>/SPARSEPP//PUB
+        <use>/CHIMERA//PUB
     ;
 
 lib ParameterManager
@@ -33,6 +42,9 @@ lib ParameterManager
         <include>$(AeroInclude)
         <cxxflags>"-fprofile-arcs -ftest-coverage -O0"
         <linkflags>"-lgcov --coverage"
+
+        <use>/SPARSEPP//PUB
+        <use>/CHIMERA//PUB
     ;
 
 explicit ParameterManager ;

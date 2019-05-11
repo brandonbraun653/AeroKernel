@@ -9,6 +9,7 @@ lib ParameterManager
 
     :   <toolset>gcc_arm_none_eabi
         <include>$(AeroInclude)
+        <define>__linux__           # Needed to properly select overloaded functions in spp_utils.h
 
         <use>/SPARSEPP//PUB
         <use>/CHIMERA//PUB
@@ -60,6 +61,10 @@ lib EventManager
 
     :   <toolset>gcc_arm_none_eabi
         <include>$(AeroInclude)
+        <define>__linux__           # Needed to properly select overloaded functions in spp_utils.h
+
+        <use>/SPARSEPP//PUB
+        <use>/CHIMERA//PUB
     ;
 
 lib EventManager
@@ -98,6 +103,10 @@ lib LogManager
 
     :   <toolset>gcc_arm_none_eabi
         <include>$(AeroInclude)
+        <define>__linux__           # Needed to properly select overloaded functions in spp_utils.h
+
+        <use>/SPARSEPP//PUB
+        <use>/CHIMERA//PUB
     ;
 
 lib LogManager

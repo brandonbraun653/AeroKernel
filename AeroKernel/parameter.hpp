@@ -31,28 +31,28 @@ namespace AeroKernel::Parameter
     static constexpr uint8_t MEM_LOC_POS = 0u;
     static constexpr uint8_t MEM_LOC_MSK = 0x7 << MEM_LOC_POS;
 
-    static constexpr uint32_t INTERNAL_SRAM   = 0u << MEM_LOC_POS;
-    static constexpr uint32_t INTERNAL_FLASH  = 1u << MEM_LOC_POS;
-    static constexpr uint32_t EXTERNAL_FLASH0 = 2u << MEM_LOC_POS;
-    static constexpr uint32_t EXTERNAL_FLASH1 = 3u << MEM_LOC_POS;
-    static constexpr uint32_t EXTERNAL_FLASH2 = 4u << MEM_LOC_POS;
-    static constexpr uint32_t EXTERNAL_SRAM0  = 5u << MEM_LOC_POS;
-    static constexpr uint32_t EXTERNAL_SRAM1  = 6u << MEM_LOC_POS;
-    static constexpr uint32_t EXTERNAL_SRAM2  = 7u << MEM_LOC_POS;
+    static constexpr size_t INTERNAL_SRAM   = 0u << MEM_LOC_POS;
+    static constexpr size_t INTERNAL_FLASH  = 1u << MEM_LOC_POS;
+    static constexpr size_t EXTERNAL_FLASH0 = 2u << MEM_LOC_POS;
+    static constexpr size_t EXTERNAL_FLASH1 = 3u << MEM_LOC_POS;
+    static constexpr size_t EXTERNAL_FLASH2 = 4u << MEM_LOC_POS;
+    static constexpr size_t EXTERNAL_SRAM0  = 5u << MEM_LOC_POS;
+    static constexpr size_t EXTERNAL_SRAM1  = 6u << MEM_LOC_POS;
+    static constexpr size_t EXTERNAL_SRAM2  = 7u << MEM_LOC_POS;
 
-    static constexpr uint32_t MAX_MEMORY_LOCATIONS = 8u;
+    static constexpr size_t MAX_MEMORY_LOCATIONS = 8u;
   };  // namespace Location
 
   struct ParamCtrlBlk
   {
     size_t size;      /**< The size of the data this control block describes */
-    uint32_t address; /**< The address in memory the data should be stored at */
+    size_t address; /**< The address in memory the data should be stored at */
 
     /**
      *  Configuration Options:
      *    Bits 0-2: Memory Storage Location, see MemoryLocation
      */
-    uint32_t config;
+    size_t config;
     std::function<bool( const std::string_view &key )> update;
   };
 

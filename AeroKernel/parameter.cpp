@@ -15,10 +15,6 @@ namespace AeroKernel::Parameter
   /*------------------------------------------------
   Compile Time Checks
   ------------------------------------------------*/
-  static constexpr size_t ParamCtrlBlkSize = sizeof( ParamCtrlBlk );
-  //static_assert( ( ( sizeof( ParamCtrlBlk ) * sizeof( size_t ) ) % std::numeric_limits<size_t>::digits ) == 0,
-  //               "Parameter control block is not system architecture aligned" );
-
   static_assert( static_cast<uint8_t>( Location::MAX_MEMORY_LOCATIONS ) == 8, "Incorrect supported memory locations" );
 
   /*------------------------------------------------

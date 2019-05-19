@@ -23,6 +23,7 @@
 
 /* Chimera Includes */
 #include <Chimera/modules/memory/device.hpp>
+#include <Chimera/threading.hpp>
 
 namespace AeroKernel::Parameter
 {
@@ -45,7 +46,7 @@ namespace AeroKernel::Parameter
 
   struct ParamCtrlBlk
   {
-    size_t size;      /**< The size of the data this control block describes */
+    size_t size;    /**< The size of the data this control block describes */
     size_t address; /**< The address in memory the data should be stored at */
 
     /**
@@ -60,101 +61,103 @@ namespace AeroKernel::Parameter
   using ParamCtrlBlk_uPtr = std::unique_ptr<ParamCtrlBlk>;
 
 
-  class Manager
+  class Manager : public Chimera::Threading::Lockable 
   {
   public:
-    Manager();
+    Manager(const size_t lockTimeout_mS = 50 );
     ~Manager();
 
     /**
+     *  Initializes the parameter manager to a default configuration and allocates
+     *  the given number of parameters that can be actively registered.
      *
-     *
-     *	@param[in]	numElements
+     *	@param[in]	numParameters   How many parameters can be managed by this class
      *	@return bool
      */
-    bool init( const size_t numElements );
+    bool init( const size_t numParameters );
 
     /**
+     *  Registers a new parameter into the manager
      *
-     *
-     *	@param[in]	key
-     *	@param[in]	controlBlock
+     *	@param[in]	key             The parameter's name
+     *	@param[in]	controlBlock    Information describing where the parameter lives in memory
      *	@return bool
      */
     bool registerParameter( const std::string_view &key, const ParamCtrlBlk &controlBlock );
 
     /**
+     *  Removes a parameter from the manager
      *
-     *
-     *	@param[in]	key
+     *	@param[in]	key             The parameter's name
      *	@return bool
      */
     bool unregisterParameter( const std::string_view &key );
 
     /**
+     *  Checks if the given parameter has been registered
      *
-     *
-     *	@param[in]	key
+     *	@param[in]	key             The parameter's name
      *	@return bool
      */
     bool isRegistered( const std::string_view &key );
 
     /**
+     *  Read the parameter data from wherever it has been stored
      *
-     *
-     *	@param[in]	key
-     *	@param[in]	param
-     *	@param[in]	size
+     *	@param[in]	key             The parameter's name
+     *	@param[in]	param           Where to place the read data
      *	@return bool
      */
-    bool read( const std::string_view &key, void *const param, const size_t size );
+    bool read( const std::string_view &key, void *const param );
 
     /**
+     *  Write the parameter data to wherever it is stored
      *
-     *
-     *	@param[in]	key
-     *	@param[in]	param
-     *	@param[in]	size
+     *	@param[in]	key             The parameter's name
+     *	@param[in]	param           Where to write data from
      *	@return bool
      */
-    bool write( const std::string_view &key, const void *const param, const size_t size );
+    bool write( const std::string_view &key, const void *const param );
 
     /**
+     *  If registered, executes the parameter's update method
      *
-     *
-     *	@param[in]	key
+     *	@param[in]	key             The parameter's name
      *	@return bool
      */
     bool update( const std::string_view &key );
 
     /**
+     *  Registers a memory sink with the manager backend
      *
-     *
-     *	@param[in]	storage
-     *	@param[in]	driver
+     *	@param[in]	storage         The type of storage the driver represents as defined in the Location namespace
+     *	@param[in]	driver          A fully configured instance of a memory driver
      *	@return bool
      */
     bool registerMemoryDriver( const uint32_t storage, Chimera::Modules::Memory::Device_sPtr &driver );
 
     /**
+     *  Allows the user to assign virtual memory specifications to a
+     *  registered memory driver. This allows for partitioning the regions
+     *  that the Parameter manager is allowed access to.
      *
-     *
-     *	@param[in]	storage
-     *	@param[in]	specs
+     *	@param[in]	storage         The type of storage the driver represents as defined in the Location namespace
+     *	@param[in]	specs           Memory configuration specs
      *	@return bool
      */
     bool registerMemorySpecs( const uint32_t storage, const Chimera::Modules::Memory::Descriptor &specs );
 
     /**
+     *  Gets the control block associated with a given parameter
      *
-     *
-     *	@param[in]	key
+     *	@param[in]	key             The parameter's name
      *	@return const AeroKernel::Parameter::ParamCtrlBlk &
      */
     const ParamCtrlBlk &getControlBlock( const std::string_view &key );
 
   protected:
-    bool initialized = false;
+    bool initialized;
+    size_t lockTimeout_mS;
     spp::sparse_hash_map<std::string_view, ParamCtrlBlk> params;
     std::array<Chimera::Modules::Memory::Device_sPtr, static_cast<size_t>( Location::MAX_MEMORY_LOCATIONS )> memoryDriver;
     std::array<Chimera::Modules::Memory::Descriptor, static_cast<size_t>( Location::MAX_MEMORY_LOCATIONS )> memorySpecs;

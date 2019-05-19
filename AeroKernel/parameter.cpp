@@ -17,13 +17,8 @@ namespace AeroKernel::Parameter
   ------------------------------------------------*/
   static_assert( static_cast<uint8_t>( Location::MAX_MEMORY_LOCATIONS ) == 8, "Incorrect supported memory locations" );
 
-  /*------------------------------------------------
-  Constants
-  ------------------------------------------------*/
-  static constexpr size_t param_buffer_cutoff = 3; /* Limit how close we can get to filling the parameter manager*/
 
-
-  Manager::Manager()
+  Manager::Manager(const size_t lockTimeout_mS) : initialized(false), lockTimeout_mS(lockTimeout_mS)
   {
   }
 
@@ -31,10 +26,12 @@ namespace AeroKernel::Parameter
   {
   }
 
-  bool Manager::init( const size_t numElements )
+  bool Manager::init( const size_t numParameters )
   {
     params.clear();
-    params.resize( numElements );
+    params.resize( numParameters );
+    params.set_resizing_parameters( 0.0f, 0.1f );
+
     memoryDriver.fill( nullptr );
 
     initialized = true;
@@ -44,23 +41,17 @@ namespace AeroKernel::Parameter
 
   bool Manager::registerParameter( const std::string_view &key, const ParamCtrlBlk &controlBlock )
   {
-    bool result = true;
+    bool result = false;
 
-    if ( !initialized )
+    /*------------------------------------------------
+    If the key does not exist in the map, it will be added. Otherwise
+    the existing key will be accessed and the value updated.
+    ------------------------------------------------*/
+    if ( initialized && ( reserve( lockTimeout_mS ) == Chimera::CommonStatusCodes::OK ) )
     {
-      result = false;
-    }
-    else if ( ( params.max_size() - params.size() ) <= param_buffer_cutoff )
-    {
-      result = false;
-    }
-    else
-    {
-      /*------------------------------------------------
-      If the key does not exist in the map, it will be added. Otherwise
-      the existing key will be accessed and the value updated.
-      ------------------------------------------------*/
       params[ key ] = controlBlock;
+      release();
+      result = true;
     }
 
     return result;
@@ -68,23 +59,35 @@ namespace AeroKernel::Parameter
 
   bool Manager::unregisterParameter( const std::string_view &key )
   {
-    return ( params.erase( key ) > 0 );
+    bool result = false;
+
+    if ( initialized && ( reserve( lockTimeout_mS ) == Chimera::CommonStatusCodes::OK ) )
+    {
+      result = params.erase( key ) > 0;
+      release();
+    }
+    
+    return result;
   }
 
   bool Manager::isRegistered( const std::string_view &key )
   {
-    return params.contains( key );
+    bool result = false;
+    
+    if ( initialized && ( reserve( lockTimeout_mS ) == Chimera::CommonStatusCodes::OK ) )
+    {
+      result = params.contains( key );
+      release();
+    }
+
+    return result;
   }
 
-  bool Manager::read( const std::string_view &key, void *const param, const size_t size )
+  bool Manager::read( const std::string_view &key, void *const param )
   {
     bool result = true;
 
-    if ( !initialized || !param )
-    {
-      result = false;
-    }
-    else if ( !params.contains( key ) )
+    if ( !initialized || !param || !params.contains( key ) || ( reserve( lockTimeout_mS ) != Chimera::CommonStatusCodes::OK ) )
     {
       result = false;
     }
@@ -93,10 +96,11 @@ namespace AeroKernel::Parameter
       auto ctrlBlk = params[ key ];
       auto storage = ( ctrlBlk.config & Location::MEM_LOC_MSK ) >> Location::MEM_LOC_POS;
       auto driver  = memoryDriver[ storage ];
+      release();
 
-      if ( driver && ( ctrlBlk.size == size ) )
+      if ( driver )
       {
-        Chimera::Status_t error = driver->read( ctrlBlk.address, reinterpret_cast<uint8_t *const>( param ), size );
+        Chimera::Status_t error = driver->read( ctrlBlk.address, reinterpret_cast<uint8_t *const>( param ), ctrlBlk.size );
 
         if ( error != Chimera::CommonStatusCodes::OK )
         {
@@ -112,36 +116,21 @@ namespace AeroKernel::Parameter
     return result;
   }
 
-  bool Manager::write( const std::string_view &key, const void *const param, const size_t size )
+  bool Manager::write( const std::string_view &key, const void *const param )
   {
-    bool result = true;
+    bool result = false;
 
-    if ( !initialized || !param )
-    {
-      result = false;
-    }
-    else if ( !params.contains( key ) )
-    {
-      result = false;
-    }
-    else
+    if ( initialized && param && params.contains( key ) && ( reserve( lockTimeout_mS ) == Chimera::CommonStatusCodes::OK ) )
     {
       auto ctrlBlk = params[ key ];
       auto storage = ( ctrlBlk.config & Location::MEM_LOC_MSK ) >> Location::MEM_LOC_POS;
       auto driver  = memoryDriver[ storage ];
+      release();
 
-      if ( driver && ( ctrlBlk.size == size ) )
+      if ( driver )
       {
-        Chimera::Status_t error = driver->write( ctrlBlk.address, reinterpret_cast<const uint8_t *const>( param ), size );
-
-        if ( error != Chimera::CommonStatusCodes::OK )
-        {
-          result = false;
-        }
-      }
-      else
-      {
-        result = false;
+        Chimera::Status_t error = driver->write( ctrlBlk.address, reinterpret_cast<const uint8_t *const>( param ), ctrlBlk.size );
+        result = ( error == Chimera::CommonStatusCodes::OK );
       }
     }
 
@@ -150,27 +139,15 @@ namespace AeroKernel::Parameter
 
   bool Manager::update( const std::string_view &key )
   {
-    bool result = true;
+    bool result = false;
 
-    if ( !initialized )
-    {
-      result = false;
-    }
-    else if ( !params.contains( key ) )
-    {
-      result = false;
-    }
-    else
+    if ( initialized && params.contains( key ) )
     {
       auto ctrlBlk = params[ key ];
 
       if ( ctrlBlk.update )
       {
         result = ctrlBlk.update( key );
-      }
-      else
-      {
-        result = false;
       }
     }
 
@@ -179,15 +156,14 @@ namespace AeroKernel::Parameter
 
   bool Manager::registerMemoryDriver( const uint32_t storage, Chimera::Modules::Memory::Device_sPtr &driver )
   {
-    bool result = true;
+    bool result = false;
 
-    if ( !initialized || ( storage >= Location::MAX_MEMORY_LOCATIONS ) )
-    {
-      result = false;
-    }
-    else
+    if ( initialized && ( storage < Location::MAX_MEMORY_LOCATIONS )
+         && ( reserve( lockTimeout_mS ) == Chimera::CommonStatusCodes::OK ) )
     {
       memoryDriver[ storage ] = driver;
+      release();
+      result = true;
     }
 
     return result;
@@ -195,15 +171,14 @@ namespace AeroKernel::Parameter
 
   bool Manager::registerMemorySpecs( const uint32_t storage, const Chimera::Modules::Memory::Descriptor &specs )
   {
-    bool result = true;
+    bool result = false;
 
-    if ( !initialized || ( storage >= Location::MAX_MEMORY_LOCATIONS ) )
-    {
-      result = false;
-    }
-    else
+    if ( initialized && ( storage < Location::MAX_MEMORY_LOCATIONS )
+         && ( reserve( lockTimeout_mS ) == Chimera::CommonStatusCodes::OK ) )
     {
       memorySpecs[ storage ] = specs;
+      release();
+      result = true;
     }
 
     return result;

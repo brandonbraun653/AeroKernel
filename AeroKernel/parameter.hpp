@@ -50,21 +50,21 @@
 
 namespace AeroKernel::Parameter
 {
-  namespace Location
+  enum class StorageType : uint8_t
   {
-    static constexpr uint8_t MEM_LOC_POS = 0u;                 /**< ParamCtrlBlk.config bit position for memory locator */
-    static constexpr uint8_t MEM_LOC_MSK = 0x7 << MEM_LOC_POS; /**< Memory locator config bit width mask */
+    INTERNAL_SRAM,
+    INTERNAL_FLASH,
+    EXTERNAL_FLASH0,
+    EXTERNAL_FLASH1,
+    EXTERNAL_FLASH2,
+    EXTERNAL_SRAM0,
+    EXTERNAL_SRAM1,
+    EXTERNAL_SRAM2,
+    NONE,
+    MAX_STORAGE_OPTIONS = NONE
+  };
 
-    static constexpr size_t INTERNAL_SRAM        = 0u << MEM_LOC_POS; /**< Location option for internal SRAM */
-    static constexpr size_t INTERNAL_FLASH       = 1u << MEM_LOC_POS; /**< Location option for internal FLASH */
-    static constexpr size_t EXTERNAL_FLASH0      = 2u << MEM_LOC_POS; /**< Location option for external FLASH #0 */
-    static constexpr size_t EXTERNAL_FLASH1      = 3u << MEM_LOC_POS; /**< Location option for external FLASH #1 */
-    static constexpr size_t EXTERNAL_FLASH2      = 4u << MEM_LOC_POS; /**< Location option for external FLASH #2 */
-    static constexpr size_t EXTERNAL_SRAM0       = 5u << MEM_LOC_POS; /**< Location option for external SRAM #0 */
-    static constexpr size_t EXTERNAL_SRAM1       = 6u << MEM_LOC_POS; /**< Location option for external SRAM #1 */
-    static constexpr size_t EXTERNAL_SRAM2       = 7u << MEM_LOC_POS; /**< Location option for external SRAM #2 */
-    static constexpr size_t MAX_MEMORY_LOCATIONS = 8u;                /**< Total number of memory locations possible */
-  };                                                                  // namespace Location
+  using UpdateCallback_t = std::function<bool( const std::string_view &key )>;
 
   /**
    *  Data structure that fully describes a parameter that is stored
@@ -74,7 +74,7 @@ namespace AeroKernel::Parameter
    *
    *  @requirement PM002.2
    */
-  struct ParamCtrlBlk
+  struct ControlBlock
   {
     /**
      *  The size of the data this control block describes.
@@ -103,19 +103,95 @@ namespace AeroKernel::Parameter
      *
      *  @requirement PM002.3
      */
-    std::function<bool( const std::string_view &key )> update = nullptr;
+    UpdateCallback_t update = nullptr;
   };
 
-  using ParamCtrlBlk_sPtr = std::shared_ptr<ParamCtrlBlk>;
-  using ParamCtrlBlk_uPtr = std::unique_ptr<ParamCtrlBlk>;
+  using ParamCtrlBlk_sPtr = std::shared_ptr<ControlBlock>;
+  using ParamCtrlBlk_uPtr = std::unique_ptr<ControlBlock>;
 
-  // TODO: To be implemented in #11
-  #if 0
-  class ParamFactory
+  /**
+   *  A generator for the control block data structure. Currently
+   *  it's quite simple, but the data type is likely to change in 
+   *  the future and necessitates a common interface.
+   */
+  class ControlBlockFactory
   {
-  
+  public:
+    ControlBlockFactory();
+    ~ControlBlockFactory();
+
+    /**
+     *	Compiles all the current settings and returns the fully
+     *  configured control block.
+     *
+     *	@return AeroKernel::Parameter::ControlBlock
+     */
+    ControlBlock build();
+
+    /**
+     *	Clears all current settings and resets the factory to default
+     *
+     *	@return void
+     */
+    void clear();
+
+    /**
+     *	Encodes the sizing information associated with the parameter this
+     *  control block describes.
+     *
+     *	@param[in]	size      The size of the parameter
+     *	@return void
+     */
+    void setSize( const size_t size );
+
+    /**
+     *	Encodes the address information
+     *
+     *	@param[in]	address   The address the parameter will be stored at in NVM
+     *	@return void
+     */
+    void setAddress( const size_t address );
+
+    /**
+     *	Encodes the storage device for the actual parameter data
+     *
+     *	@param[in]	type      Where the parameter data will be stored
+     *	@return void
+     */
+    void setStorage( const StorageType type );
+
+    /**
+     *	Attaches an optional update function
+     *
+     *	@param[in]	callback  The update function to attach
+     *	@return void
+     */
+    void setUpdateCallback( UpdateCallback_t callback );
+
+  private:
+    ControlBlock mold;
   };
-  #endif 
+
+  /**
+   *  A static class that interprets the control block configuration
+   *  and can return back non-encoded data. Currently this is just a 
+   *  simple wrapper, but the control block data structure may change
+   *  in the future, necessitating a common interface.
+   */
+  class ControlBlockInterpreter
+  {
+  public:
+    ControlBlockInterpreter() = default;
+    ~ControlBlockInterpreter() = default;
+
+    static StorageType getStorage( const ControlBlock &ctrlBlk );
+
+    static size_t getAddress( const ControlBlock &ctrlBlk );
+
+    static size_t getSize( const ControlBlock &ctrlBlk );
+
+    static UpdateCallback_t getUpdateCallback( const ControlBlock &ctrlBlk );
+  };
 
   /**
    *  Parameter Manager Implementation
@@ -154,7 +230,7 @@ namespace AeroKernel::Parameter
      *	@param[in]	controlBlock    Information describing where the parameter lives in memory
      *	@return bool
      */
-    bool registerParameter( const std::string_view &key, const ParamCtrlBlk &controlBlock );
+    bool registerParameter( const std::string_view &key, const ControlBlock &controlBlock );
 
     /**
      *  Removes a parameter from the manager
@@ -217,7 +293,7 @@ namespace AeroKernel::Parameter
      *	@param[in]	driver          A fully configured instance of a memory driver
      *	@return bool
      */
-    bool registerMemoryDriver( const uint32_t storage, Chimera::Modules::Memory::Device_sPtr &driver );
+    bool registerMemoryDriver( const StorageType storage, Chimera::Modules::Memory::Device_sPtr &driver );
 
     /**
      *  Allows the user to assign virtual memory specifications to a
@@ -230,7 +306,7 @@ namespace AeroKernel::Parameter
      *	@param[in]	specs           Memory configuration specs
      *	@return bool
      */
-    bool registerMemorySpecs( const uint32_t storage, const Chimera::Modules::Memory::Descriptor &specs );
+    bool registerMemorySpecs( const StorageType storage, const Chimera::Modules::Memory::Descriptor &specs );
 
     /**
      *  Gets the control block associated with a given parameter
@@ -240,14 +316,14 @@ namespace AeroKernel::Parameter
      *	@param[in]	key             The parameter's name
      *	@return const AeroKernel::Parameter::ParamCtrlBlk &
      */
-    const ParamCtrlBlk &getControlBlock( const std::string_view &key );
+    const ControlBlock &getControlBlock( const std::string_view &key );
 
   protected:
     bool initialized;
     size_t lockTimeout_mS;
-    spp::sparse_hash_map<std::string_view, ParamCtrlBlk> params;
-    std::array<Chimera::Modules::Memory::Device_sPtr, static_cast<size_t>( Location::MAX_MEMORY_LOCATIONS )> memoryDriver;
-    std::array<Chimera::Modules::Memory::Descriptor, static_cast<size_t>( Location::MAX_MEMORY_LOCATIONS )> memorySpecs;
+    spp::sparse_hash_map<std::string_view, ControlBlock> params;
+    std::array<Chimera::Modules::Memory::Device_sPtr, static_cast<size_t>( StorageType::MAX_STORAGE_OPTIONS )> memoryDriver;
+    std::array<Chimera::Modules::Memory::Descriptor, static_cast<size_t>( StorageType::MAX_STORAGE_OPTIONS )> memorySpecs;
   };
 
   using Manager_sPtr = std::shared_ptr<Manager>;

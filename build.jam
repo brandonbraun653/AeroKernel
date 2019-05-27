@@ -1,9 +1,29 @@
+import lib/CommonTools/boost-build/features/coverage ;
 
-# -----------------------------------------------
-# Parameter Manager 
-# -----------------------------------------------
+# ====================================================
+# Local Rules 
+# ====================================================
+local rule explicit_alias ( name : sources * : requirements * : default-build * : usage-requirements * )
+    {
+    alias $(name) : $(sources) : $(requirements) : $(default-build) : $(usage-requirements) ;
+    explicit $(name) ;
+    }
+
+# ====================================================
+# Local Resources 
+# ====================================================
+local AeroInclude = . ;
 local param_src = AeroKernel/parameter.cpp ;
+local event_src = AeroKernel/event.cpp ;
+local log_src = AeroKernel/log.cpp ;
 
+
+# ====================================================
+# Parameter Manager Targets
+# ====================================================
+# ------------------------------------------
+# Embedded System
+# ------------------------------------------
 lib ParameterManager
     :   $(param_src)
 
@@ -15,6 +35,9 @@ lib ParameterManager
         <use>/CHIMERA//PUB
     ;
 
+# ------------------------------------------
+# Windows 
+# ------------------------------------------
 lib ParameterManager
     :   $(param_src)
     
@@ -25,6 +48,9 @@ lib ParameterManager
         <use>/CHIMERA//PUB
     ;
 
+# ------------------------------------------
+# Generic GCC
+# ------------------------------------------
 lib ParameterManager
     :   $(param_src)
 
@@ -35,11 +61,15 @@ lib ParameterManager
         <use>/CHIMERA//PUB
     ;
 
+# ------------------------------------------
+# Coverage
+# ------------------------------------------
 lib ParameterManager
     :   $(param_src)
 
     :   <toolset>gcc
         <variant>debug
+        <cov>enabled
         <include>$(AeroInclude)
         <cxxflags>"-fprofile-arcs -ftest-coverage -O0"
         <linkflags>"-lgcov --coverage"
@@ -49,13 +79,14 @@ lib ParameterManager
     ;
 
 explicit ParameterManager ;
+explicit_alias PARAMETER : ParameterManager ;
 
-
-# -----------------------------------------------
-# Event Manager 
-# -----------------------------------------------
-local event_src = AeroKernel/event.cpp ;
-
+# ====================================================
+# Event Manager Targets
+# ====================================================
+# ------------------------------------------
+# Embedded System
+# ------------------------------------------
 lib EventManager
     :   $(event_src)
 
@@ -67,6 +98,9 @@ lib EventManager
         <use>/CHIMERA//PUB
     ;
 
+# ------------------------------------------
+# Windows 
+# ------------------------------------------
 lib EventManager
     :   $(event_src)
     
@@ -74,6 +108,9 @@ lib EventManager
         <include>$(AeroInclude)
     ;
 
+# ------------------------------------------
+# Generic GCC
+# ------------------------------------------
 lib EventManager
     :   $(event_src)
 
@@ -81,23 +118,29 @@ lib EventManager
         <include>$(AeroInclude)
     ;
 
+# ------------------------------------------
+# Coverage
+# ------------------------------------------
 lib EventManager
     :   $(event_src)
 
     :   <toolset>gcc
         <variant>debug
+        <cov>enabled
         <include>$(AeroInclude)
         <cxxflags>"-fprofile-arcs -ftest-coverage -O0"
         <linkflags>"-lgcov --coverage"
     ;
 explicit EventManager ;
+explicit_alias EVENT : EventManager ;
 
 
-# -----------------------------------------------
-# Log Manager 
-# -----------------------------------------------
-local log_src = AeroKernel/log.cpp ;
-
+# ====================================================
+# Log Manager Targets
+# ====================================================
+# ------------------------------------------
+# Embedded System
+# ------------------------------------------
 lib LogManager
     :   $(log_src)
 
@@ -109,6 +152,9 @@ lib LogManager
         <use>/CHIMERA//PUB
     ;
 
+# ------------------------------------------
+# Windows 
+# ------------------------------------------
 lib LogManager
     :   $(log_src)
     
@@ -116,6 +162,9 @@ lib LogManager
         <include>$(AeroInclude)
     ;
 
+# ------------------------------------------
+# Generic GCC
+# ------------------------------------------
 lib LogManager
     :   $(log_src)
 
@@ -123,14 +172,19 @@ lib LogManager
         <include>$(AeroInclude)
     ;
 
+# ------------------------------------------
+# Coverage
+# ------------------------------------------
 lib LogManager
     :   $(log_src)
 
     :   <toolset>gcc
         <variant>debug
+        <cov>enabled
         <include>$(AeroInclude)
         <cxxflags>"-fprofile-arcs -ftest-coverage -O0"
         <linkflags>"-lgcov --coverage"
     ;
 
 explicit LogManager ;
+explicit_alias LOG : LogManager ;

@@ -17,7 +17,6 @@ local param_src = AeroKernel/parameter.cpp ;
 local event_src = AeroKernel/event.cpp ;
 local log_src = AeroKernel/log.cpp ;
 
-
 # ====================================================
 # Parameter Manager Targets
 # ====================================================
@@ -188,3 +187,9 @@ lib LogManager
 
 explicit LogManager ;
 explicit_alias LOG : LogManager ;
+
+# ====================================================
+# Public Library Components
+# ====================================================
+explicit_alias PUB : : : : <include>$(AeroInclude) ;
+explicit_alias CORE : LogManager EventManager ParameterManager ;
